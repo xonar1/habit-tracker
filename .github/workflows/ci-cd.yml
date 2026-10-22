@@ -17,7 +17,11 @@ jobs:
           python-version: "3.11"
 
       - run: pip install -r requirements.txt -r requirements-dev.txt
-      - run: python -m pytest -v
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Run pytest
+        run: python -m pytest -v
 
   deploy:
     needs: test
@@ -35,4 +39,4 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy web --project-name=habit-tracker
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}  
