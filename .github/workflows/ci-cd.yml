@@ -3,31 +3,60 @@ name: CI/CD
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "web/**"
+      - ".github/workflows/ci-cd.yml"
   pull_request:
     branches: [main]
+    # ⚠ ВАЖНО: paths НЕ указываем для pull_request! Иначе обязательные проверки зависнут.
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
-    # Задание 6: указываем, что все команды run должны выполняться в папке backend
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check .
 
-      # Устанавливаем зависимости из папки backend (requirements-dev.txt уже включает requirements.txt)
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      
-      # Запускаем тесты (pytest найдёт pytest.ini в папке backend и правильно определит PYTHONPATH)
-      - run: pytest -v
+      - run: pytest -v --cov=app --cov-report=term-missing --cov-report=html --cov-fail-under=80
+      - uses: actions/upload-artifact@v4
+        if: matrix.python-version == '3.12'
+        with:
+          name: coverage-html
+          path: backend/htmlcov
 
   deploy:
-    needs: test # Деплой запустится ТОЛЬКО если job test завершился успешно (зелёный)
+    needs: [lint, test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -35,7 +64,6 @@ jobs:
       deployments: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
