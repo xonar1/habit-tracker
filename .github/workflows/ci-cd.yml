@@ -3,8 +3,17 @@ name: CI/CD
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "web/**"
+      - ".github/workflows/ci-cd.yml"
   pull_request:
     branches: [main]
+    # ⚠ ВАЖНО: paths НЕ указываем для pull_request! Иначе обязательные проверки зависнут.
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   lint:
@@ -39,11 +48,7 @@ jobs:
             backend/requirements.txt
             backend/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      
-      # НОВОЕ: тесты с замером покрытия
       - run: pytest -v --cov=app --cov-report=term-missing --cov-report=html --cov-fail-under=80
-      
-      # НОВОЕ: загрузка HTML-отчёта как артефакта
       - uses: actions/upload-artifact@v4
         if: matrix.python-version == '3.12'
         with:
