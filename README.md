@@ -205,7 +205,7 @@ Runner в GitHub Actions — временная VM, она исчезает по
 
 Подробные отчёты с скриншотами и рефлексией лежат в отдельном репозитории:
 
-👉 **[college-reports](https://github.com/xonar1/college-reports)**
+👉 **[college-reports](https://github.com/xonar1/reports_on_lab)** 
 
 - `Lab1.md` — Agile, Scrum, Kanban в Jira
 - `Lab3.md` — Git в консоли
